@@ -4,6 +4,7 @@
   "description": "",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "repository": "https://github.com/liteflow-labs/multicall",
   "scripts": {
     "clean": "rm -rf dist && tsc --build --clean",
     "build": "tsc --build",
@@ -17,9 +18,8 @@
     "prettier:fix": "npm run prettier -- --write"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.3.6",
     "dataloader": "^2.0.0",
-    "ethers": "^5.4.0"
+    "ethers": "^5.5.2"
   },
   "devDependencies": {
     "@types/jest": "^27.0.2",
