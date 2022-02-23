@@ -1,11 +1,10 @@
 import { BlockTag } from '@ethersproject/abstract-provider'
 import { Contract } from '@ethersproject/contracts'
 import { ErrorCode } from '@ethersproject/logger'
-import {
-  JsonRpcProvider,
-  StaticJsonRpcProvider,
-} from '@ethersproject/providers'
+import { Networkish } from '@ethersproject/networks'
+import { StaticJsonRpcProvider } from '@ethersproject/providers'
 import DataLoader from 'dataloader'
+import { ConnectionInfo } from 'ethers/lib/utils'
 import multicallAbi from './abi/multicall2.json'
 import { Multicall2 } from './contracts'
 
@@ -30,6 +29,7 @@ export interface MulticallProviderConfig {
 
   /**
    * Address of the multicall v2 smart contract
+   * Check makerdao's multicall repo for other deployment: https://github.com/makerdao/multicall
    * @default 0x5ba1e12693dc8f9c48aad8770482f4739beed696
    **/
   smartContractAddress: string
@@ -78,11 +78,12 @@ export class MulticallProvider extends StaticJsonRpcProvider {
   private readonly dataloader: DataLoader<Call, any, string>
 
   constructor(
-    private readonly provider: JsonRpcProvider,
+    url: ConnectionInfo | string,
     config?: Partial<MulticallProviderConfig>,
+    network?: Networkish,
   ) {
     // init super
-    super(provider.connection.url)
+    super(url, network)
 
     // set config with default
     this.config = {
@@ -96,7 +97,7 @@ export class MulticallProvider extends StaticJsonRpcProvider {
     this.multicall = new Contract(
       this.config.smartContractAddress,
       multicallAbi,
-      provider,
+      this,
     ) as Multicall2
 
     // init dataloader
@@ -107,7 +108,10 @@ export class MulticallProvider extends StaticJsonRpcProvider {
   }
 
   async send(method: string, params: Array<any>): Promise<any> {
+    // multicall is only compatible with eth_call method
     if (method !== 'eth_call') return super.send(method, params)
+
+    // multicall is only compatible with params to and data, nothing more
     const keys = Object.keys(params[0])
     if (
       keys.length !== 2 ||
@@ -120,6 +124,16 @@ export class MulticallProvider extends StaticJsonRpcProvider {
         )
       return super.send(method, params)
     }
+
+    // do not multicall if the call is already to the multicall contract
+    if (
+      params[0].to.toLowerCase() ===
+      this.config.smartContractAddress.toLowerCase()
+    ) {
+      return super.send(method, params)
+    }
+
+    // multicall it!
     return this.dataloader.load(params as Call)
   }
 
@@ -168,7 +182,7 @@ export class MulticallProvider extends StaticJsonRpcProvider {
         if (result.success) return result.returnData
         if (this.config.debugError) {
           // in case of error, re-execute the call on the provider to get a better error message
-          return this.provider.send('eth_call', calls[index])
+          return super.send('eth_call', calls[index])
         }
         return new Error(
           `an error occurred in a call. To get the full error of failed calls, set config of multicall provider debugError to true`,
