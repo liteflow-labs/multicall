@@ -1,15 +1,14 @@
 import { Contract } from '@ethersproject/contracts'
-import { StaticJsonRpcProvider } from '@ethersproject/providers'
 import { abi as IUniswapV3PoolABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json'
 import { abi as ITickLensABI } from '@uniswap/v3-periphery/artifacts/contracts/interfaces/ITickLens.sol/ITickLens.json'
 // import { ITickLens, IUniswapV3Pool } from '../../uniswapV3/src/contracts'
 import { MulticallProvider } from './index'
 
 if (!process.env.PROVIDER_URL) throw new Error('env PROVIDER_URL is not set')
+const PROVIDER_URL = process.env.PROVIDER_URL
 
 // provider
-const _provider = new StaticJsonRpcProvider(process.env.PROVIDER_URL)
-const defaultMulticallProvider = new MulticallProvider(_provider)
+const defaultMulticallProvider = new MulticallProvider(PROVIDER_URL)
 
 // init uniswap v3 service
 const _poolContract = new Contract(
@@ -61,7 +60,7 @@ describe('Multicall Provider', () => {
   }, 60000)
 
   test('should throw specific error for the failed calls', async () => {
-    const fullErrorMulticallProvider = new MulticallProvider(_provider, {
+    const fullErrorMulticallProvider = new MulticallProvider(PROVIDER_URL, {
       debugError: true,
     })
     const fullErrorPoolContract = _poolContract.connect(
@@ -90,7 +89,7 @@ describe('Multicall Provider', () => {
   }, 60000)
 
   test('can be configured with (wrong) smart contract address', async () => {
-    const wrongConfigMulticallProvider = new MulticallProvider(_provider, {
+    const wrongConfigMulticallProvider = new MulticallProvider(PROVIDER_URL, {
       smartContractAddress: '0x0000000000000000000000000000000000000000',
     })
     const wrongConfigPoolContract = _poolContract.connect(
@@ -107,7 +106,7 @@ describe('Multicall Provider', () => {
     'should recover on timeout and server errors',
     async () => {
       const nbrCalls = 10000
-      const timeoutMulticallProvider = new MulticallProvider(_provider, {
+      const timeoutMulticallProvider = new MulticallProvider(PROVIDER_URL, {
         recoverBatchError: true,
         maxBatchSize: Infinity,
       })
