@@ -9,6 +9,7 @@
     "clean": "rm -rf dist && tsc --build --clean",
     "build": "tsc --build",
     "prebuild": "npm run clean",
+    "prepack": "npm run build",
     "test": "jest",
     "generate:contracts": "typechain --target ethers-v5 --out-dir src/contracts './src/abi/*.json'",
     "lint": "eslint '**/*.ts' && npm run prettier:check",
